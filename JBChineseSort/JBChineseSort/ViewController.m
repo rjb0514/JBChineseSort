@@ -16,7 +16,7 @@
 @property (nonatomic, strong) UITableView *tableView;
 
 
-@property (nonatomic, strong) NSArray<Person *> *modelList;
+@property (nonatomic, strong) NSArray *modelList;
 
 @property (nonatomic, strong) NSMutableArray *titleArr;
 
@@ -38,24 +38,89 @@
     
     //设置
     
+    [self setupSoureData];
     
 }
 
 
+//数据的处理
 - (void)setupSoureData {
     
     
+    //获取随机的姓名数组
+    NSArray *arr = [Person getRandomArray];
     
     
+    //创建localized对象
+    UILocalizedIndexedCollation *localized =  [UILocalizedIndexedCollation currentCollation];
     
     
+    NSMutableArray *newSectionArr = [NSMutableArray array];
+    
+    NSInteger num = [[localized sectionTitles] count];
+    
+    //创建二维数组
+    for (NSInteger i = 0; i < num; i++) {
+        [newSectionArr addObject:[NSMutableArray array]];
+    }
+    
+    
+    for (Person *p in arr) {
+        NSInteger sectionInteger = [localized sectionForObject:p collationStringSelector:@selector(name)];
+        
+        //把对应的名字添加到二维数组
+        [newSectionArr[sectionInteger] addObject:p];
+    }
+    
+    
+    //二维数组排序
+    
+    for (NSInteger i = 0; i < newSectionArr.count; i ++) {
+        
+        NSMutableArray *arrM = newSectionArr[i];
+        
+        //排序函数
+        NSArray *temparr = [localized sortedArrayFromArray:arrM collationStringSelector:@selector(name)];
+        
+        
+        newSectionArr[i] = temparr.mutableCopy;
+        
+    }
+    
+    
+    NSMutableArray *deleteArr = [NSMutableArray array];
+    
+    [newSectionArr enumerateObjectsUsingBlock:^(NSMutableArray *obj, NSUInteger idx, BOOL * _Nonnull stop) {
+       
+        
+        if (obj.count) {
+            
+            [self.titleArr addObject:[localized sectionTitles][idx]];
+            
+            
+        }else {
+            
+            [deleteArr addObject:obj];
+        }
+        
+    }];
+    
+    [newSectionArr removeObjectsInArray:deleteArr];
+    
+    self.modelList = newSectionArr;
     
 }
 
 
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    
+    
+    return self.titleArr.count;
+}
+
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     
-    return 10;
+    return [self.modelList[section] count];
     
 }
 
@@ -66,9 +131,23 @@
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"cell" forIndexPath:indexPath];
     
     
-    cell.textLabel.text = @"11";
+    Person *p = self.modelList[indexPath.section][indexPath.row];
+    cell.textLabel.text = p.name;
     
     return cell;
+    
+}
+
+
+- (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
+    
+    
+    return self.titleArr[section];
+}
+
+- (NSArray<NSString *> *)sectionIndexTitlesForTableView:(UITableView *)tableView {
+    
+    return self.titleArr;
     
 }
 
@@ -91,11 +170,11 @@
     
 }
 
-- (NSArray<Person *> *)modelList {
+- (NSArray *)modelList {
     
     
     if (!_modelList) {
-        _modelList = [Person getRandomArray];
+        _modelList = [NSMutableArray array];
     }
     
     return _modelList;
